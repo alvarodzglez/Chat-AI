@@ -1,0 +1,210 @@
+{
+  "name": "Handling API call to OpenAI",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "28d7ec51-c1ad-4ef1-b202-42d1b04f7fb4",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "15298aed-8104-42ec-a5f1-c13c9e37245b",
+      "name": "Webhook",
+      "webhookId": "28d7ec51-c1ad-4ef1-b202-42d1b04f7fb4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n     \"model\": \"gpt-4o\",\n     \"messages\": [{\"role\": \"user\", \"content\": \"{{ $json.message }}\"}],\n     \"temperature\": 0.7\n   }",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "83f706e8-607e-4b26-96ee-3b5488796c5d",
+      "name": "HTTP Request",
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b857767c-84ea-41e5-9748-47e8ee00456d",
+              "leftValue": "={{ $json.body.choices[0].message.content }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "6bcfab4e-79b9-4836-80dd-faae8f393cba",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        420,
+        0
+      ],
+      "id": "4d787187-a725-4bd8-96b9-0054b44ef89f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"answer\": \"Sorry, an error occurred. Please try again later.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        80
+      ],
+      "id": "e33063ca-d4ba-473c-a075-528036090f05",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the message value\nlet message = $input.first().json.body.message;\n\n// Escape special characters in the message\nmessage = message.replace(/\\n/g, '\\\\n');   // Escape newlines\n\n\n// Assign the formatted message to a new property\nreturn [\n  {\n    json: {\n      message: message\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        60,
+        0
+      ],
+      "id": "78f1b7ff-6af2-4f75-bf77-582a034a15bd",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      answer: $input.first().json.body.choices[0].message.content\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -60
+      ],
+      "id": "f9eeb303-d5a2-495f-9651-db9d7a509228",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8bdf1ca8-0941-4312-940d-4f10a9b27a48",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d9a2b72832b8a095cf7e4cbbe9a6dce62ad5b8b56c8c73696b13e81783bf025a"
+  },
+  "id": "a2UdagU2VeBL7CyC",
+  "tags": []
+}
